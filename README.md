@@ -8,11 +8,11 @@ Claude Code -> 127.0.0.1:1234 -> selected account -> Codex Responses
 
 One account is enough to get started. Add others when needed. Accounts never rotate automatically when quota runs out.
 
-Version 0.6.1 fixes stale rounded borders after maximizing/resizing and clipped background repainting around transparent labels/buttons. The dark interface uses a responsive grid, compact accounts section, neutral colors, and readable disabled actions. **Getting started** uses file-only configuration: Claude Code `settings.json`, Codex `config.toml`, and raw HTTP requests. No shell setup or credential helper is needed. See [SELF_TEST.md](SELF_TEST.md) for manual Windows UI/live-account checks. Native UI testing is intentionally left to the user.
+**Version 1.0.0** is the first OpenProxy Desktop baseline. It includes manual account switching, plan/quota lookup, a dark interface with startup progress, and file-only client configuration. See [SELF_TEST.md](SELF_TEST.md) for manual Windows UI/live-account checks. Native UI testing remains separate from automated verification.
 
 ## Windows desktop
 
-Open `dist/OpenProxy-0.6.1/OpenProxy.exe`, or extract `dist/OpenProxy-0.6.1-windows-x64.zip` and open the executable. Keep the entire `resources` folder next to it. The portable app includes Node and the upstream engine; no separate Node installation is needed. Requires Windows 10/11 x64 with .NET Framework 4.8.
+Download [OpenProxy 1.0.0 for Windows x64](https://github.com/tuanvipandpro/OpenProxy/releases/download/v1.0.0/OpenProxy-1.0.0-windows-x64.zip) from [Releases](https://github.com/tuanvipandpro/OpenProxy/releases). Extract the entire folder and open `OpenProxy.exe`. Keep `resources` beside it. The matching `.sha256` asset contains the ZIP checksum. Node and the upstream engine are bundled; no separate Node installation is needed. Requires Windows 10/11 x64 with .NET Framework 4.8.
 
 1. Open **OpenProxy.exe**. A small startup window shows the current step and elapsed time before the main window opens. The proxy starts **stopped**.
 2. Choose **+ Add account → Link current Codex login**, or **Sign in to another ChatGPT account**.
@@ -126,6 +126,7 @@ node --test openproxy/test/*.test.mjs
 node desktop/build.mjs
 # Build a separate copy while an older executable is open:
 node desktop/build.mjs --versioned
+node desktop/verify-package.mjs
 ```
 
 Tests use fake credentials and a local upstream, including tool-call translation through the real pinned engine. Engine tests are skipped if it is not installed. They do not consume ChatGPT quota.
@@ -134,6 +135,10 @@ The desktop build uses the Windows C# compiler for a native WinForms interface a
 
 ## Upstream
 
-The original Rust source and MIT license from [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy) are retained. See [README.upstream.md](README.upstream.md). OpenProxy adds the Node account selector, CLI, and Windows desktop interface around the pinned upstream release.
+OpenProxy uses the unchanged engine from [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy), pinned to v0.1.46. Upstream Rust sources, website docs, and unrelated build/release tooling are not needed in the OpenProxy working tree. Their history remains in Git and the upstream repository. Attribution, the MIT notice, and runtime licenses are preserved; see [NOTICE.md](NOTICE.md).
+
+## Releases
+
+The Windows workflow checks source versions, installs the pinned engine, runs logic/integration tests, builds the portable package, and verifies its contents, bundled executable versions, and SHA-256. Pushing an annotated `v<package-version>` tag publishes the ZIP and checksum to GitHub Releases using the repository's built-in workflow token. No custom release secret is required. See [RELEASE_NOTES.md](RELEASE_NOTES.md) and [CHANGELOG.md](CHANGELOG.md).
 
 This remains an experimental subscription-backed integration. Anthropic [does not support routing Claude Code to non-Claude models](https://code.claude.com/docs/en/llm-gateway). Running locally does not guarantee future provider policy, quota, or account access.

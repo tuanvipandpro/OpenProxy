@@ -2,15 +2,20 @@ name: OpenProxy Windows
 
 on:
   push:
-    paths: ['openproxy/**', 'desktop/**', 'openproxy.ps1', 'package.json', '.github/workflows/openproxy.yml']
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    paths: ['openproxy/**', 'desktop/**', 'openproxy.ps1', 'package.json', '.github/workflows/openproxy.yml']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: openproxy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  test:
+  build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +23,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
+      - name: Check release versions
+        run: node desktop/verify-package.mjs --metadata-only
       - name: Install pinned upstream engine
         run: node openproxy/cli.mjs setup
       - name: Run local and real-engine integration tests
@@ -26,4 +33,40 @@ jobs:
       - name: Verify PowerShell launcher
         run: ./openproxy.ps1 --help
       - name: Build native portable desktop
-        run: node desktop/build.mjs
+        run: node desktop/build.mjs --versioned
+      - name: Verify portable package
+        run: node desktop/verify-package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openproxy-windows-x64
+          path: |
+            dist/OpenProxy-*-windows-x64.zip
+            dist/OpenProxy-*-windows-x64.zip.sha256
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: openproxy-windows-x64
+          path: release-assets
+      - name: Publish Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "OpenProxy ${RELEASE_TAG#v}" \
+            --notes-file RELEASE_NOTES.md \
+            release-assets/*.zip release-assets/*.sha256

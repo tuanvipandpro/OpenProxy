@@ -1,4 +1,4 @@
-# OpenProxy 0.6.1 manual test guide
+# OpenProxy 1.0.0 manual test guide
 
 Logic/API checks are automated. Native Windows layout, startup timing, and live account behavior are left for you to verify. These steps require no shell setup.
 

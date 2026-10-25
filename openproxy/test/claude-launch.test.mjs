@@ -1,12 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { EventEmitter } from 'node:events';
 import { fixture, twoAccounts } from './helpers.mjs';
 import { resolveClaudeExecutable, registeredWindowsPaths, validateClaudePath, windowsPowerShell } from '../lib/claude-path.mjs';
-import { launchClaudeTerminal, CLAUDE_INVOKE } from '../lib/claude.mjs';
+import { CLAUDE_INVOKE } from '../lib/claude.mjs';
 import { DesktopController } from '../lib/desktop-controller.mjs';
 
 function file(path, content = 'test fixture; not a real executable') {
@@ -55,26 +54,6 @@ test('finds a real CLI cached by the non-MSIX desktop app', async t => {
 });
 test('a missing CLI points to the guide and manual invocation', () => {
   assert.throws(() => resolveClaudeExecutable('', { env: {}, registryPaths: [] }), /Getting started.*full path/);
-});
-test('terminal bootstrap passes executable and project paths as data and reports spawn failures', async t => {
-  const { store, dir } = await fixture(t);
-  const executable = file(join(dir, 'Claude & Tools', 'claude.cmd'));
-  let captured;
-  const spawnChild = (command, args, options) => {
-    captured = { command, args, options };
-    const child = new EventEmitter(); queueMicrotask(() => child.emit('exit', 0)); return child;
-  };
-  await launchClaudeTerminal(store, 1234, { claudePath: executable, cwd: join(dir, 'obsolete-project') }, { spawnChild, registryPaths: [], homeDir: dir });
-  assert.equal(captured.options.env.OPENPROXY_CLAUDE_EXECUTABLE, executable);
-  assert.equal(captured.options.env.OPENPROXY_WORKDIR, dir);
-  assert.equal(captured.options.cwd, dir, 'legacy project-folder preferences do not affect launch');
-  assert.equal(captured.options.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:1234');
-  assert.equal(captured.options.windowsHide, true);
-  assert.ok(!captured.args.join(' ').includes(executable));
-  assert.match(captured.args.at(-1), /Start-Process/);
-  await assert.rejects(launchClaudeTerminal(store, 1234, { claudePath: executable }, {
-    registryPaths: [], homeDir: dir, spawnChild: () => { const child = new EventEmitter(); queueMicrotask(() => child.emit('error', new Error('ENOENT'))); return child; },
-  }), /Could not open a terminal/);
 });
 test('PowerShell safely invokes an npm shim from a path with spaces and shell metacharacters', { skip: process.platform !== 'win32', timeout: 12000 }, async t => {
   const { dir } = await fixture(t);

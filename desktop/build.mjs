@@ -3,7 +3,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { requireEngine } from '../openproxy/lib/engine.mjs';
+import { requireEngine, ENGINE_VERSION } from '../openproxy/lib/engine.mjs';
 import { appIcon } from './icon.mjs';
 
 if (process.platform !== 'win32') throw new Error('The native desktop build targets Windows. Run on Windows.');
@@ -31,6 +31,8 @@ copyFileSync(process.execPath,join(resources,'runtime','node.exe'));
 copyFileSync(requireEngine(),join(resources,'engine','claude-code-proxy.exe'));
 copyFileSync(join(root,'LICENSE'),join(output,'licenses','claude-code-proxy-LICENSE.txt'));
 copyFileSync(join(root,'SELF_TEST.md'),join(output,'SELF_TEST.md'));
+copyFileSync(join(root,'NOTICE.md'),join(output,'NOTICE.md'));
+copyFileSync(join(root,'RELEASE_NOTES.md'),join(output,'RELEASE_NOTES.md'));
 for (const entry of readdirSync(join(root,'openproxy'),{withFileTypes:true})) {
   if (entry.isFile() && entry.name.endsWith('.mjs')) copyFileSync(join(root,'openproxy',entry.name),join(resources,'openproxy',entry.name));
 }
@@ -73,9 +75,10 @@ configuration limitations. This release has not been tested through native UI.
 Closing the app stops its proxy; it does not start automatically with Windows.
 Data is outside the portable folder at %LOCALAPPDATA%\\OpenProxy.
 
-Source: https://github.com/raine/claude-code-proxy (engine MIT)
+OpenProxy: https://github.com/tuanvipandpro/OpenProxy
+Engine: https://github.com/raine/claude-code-proxy (MIT)
 `.replace(/\n/g,'\r\n'));
-writeFileSync(join(output,'build-info.json'),JSON.stringify({version,node:process.version,engine:'v0.1.46',builtAt:new Date().toISOString()},null,2));
+writeFileSync(join(output,'build-info.json'),JSON.stringify({version,node:process.version,engine:ENGINE_VERSION,builtAt:new Date().toISOString()},null,2));
 const archive = join(root,'dist',outputName+'-windows-x64.zip');
 const packed = spawnSync('tar.exe',['-a','-cf',archive,'-C',dirname(output),outputName],{windowsHide:true,encoding:'utf8'});
 if (packed.status !== 0) throw new Error('Cannot create portable ZIP: '+packed.stderr);

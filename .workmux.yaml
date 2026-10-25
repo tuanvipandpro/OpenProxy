@@ -1,5 +1,0 @@
-panes:
-  - command: <agent>
-    focus: true
-  - split: horizontal
-    command: bun install

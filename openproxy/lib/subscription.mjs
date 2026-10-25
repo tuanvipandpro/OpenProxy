@@ -62,7 +62,7 @@ export class SubscriptionService {
       if (!Number.isFinite(auth.expires) || auth.expires <= this.now()) throw new UserError('Access token expired.', 401);
       const response = await this.fetchUsage(ENDPOINT, {
         method: 'GET', headers: { authorization: `Bearer ${auth.access}`, 'ChatGPT-Account-Id': auth.accountId,
-          accept: 'application/json', 'user-agent': 'OpenProxy/0.6.1' },
+          accept: 'application/json', 'user-agent': 'OpenProxy/1.0.0' },
         redirect: 'error', signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) {

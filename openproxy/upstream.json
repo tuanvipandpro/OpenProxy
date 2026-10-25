@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/raine/claude-code-proxy",
+  "referenceSourceCommit": "5261067510fd00dd5efcadab3ecf79b8e02b4f80",
+  "engineRelease": "v0.1.46",
+  "license": "MIT",
+  "integration": "Local Node.js account selector in front of unchanged upstream release engines."
+}

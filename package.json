@@ -1,0 +1,14 @@
+{
+  "name": "openproxy-local",
+  "version": "0.6.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "openproxy": "openproxy/cli.mjs" },
+  "scripts": {
+    "test": "node --test openproxy/test/*.test.mjs",
+    "start": "node openproxy/cli.mjs serve",
+    "setup": "node openproxy/cli.mjs setup",
+    "desktop:build": "node desktop/build.mjs"
+  }
+}

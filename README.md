@@ -1,144 +1,139 @@
-# claude-code-proxy
+# OpenProxy
 
-Claude Code, powered by **OpenAI Codex**, **Kimi**, **Grok**, **OpenCode Go**,
-or **Cursor Agent**.
+A local proxy for Claude Code using ChatGPT/Codex access, with manual account switching. Claude Code connects to one endpoint while OpenProxy forwards new requests through the account you select.
 
-Docs: <https://claude-code-proxy.raine.dev>
-
-LLM docs: <https://claude-code-proxy.raine.dev/llms.txt>
-
-<img src="meta/claude-code-screenshot-2026-07.webp" alt="Claude Code running through claude-code-proxy" />
-
-<a href="https://aventasks.dev/">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://aventasks.dev/readme/aven-banner-dark.webp">
-    <img src="https://aventasks.dev/readme/aven-banner-light.webp" alt="aven: one task queue for you and your coding agents" width="100%">
-  </picture>
-</a>
-
-<sub>Also from the author of claude-code-proxy: <a href="https://aventasks.dev/"><b>aven</b></a>, one
-queue for every project, with a keyboard-driven TUI for you and a CLI for your
-agents.</sub>
-
-## Why?
-
-Claude Code remains an excellent coding harness, with strong tools, skills,
-hooks, subagents, and editor integrations. claude-code-proxy keeps that client
-experience while translating its Anthropic API traffic for subscription-backed
-provider services.
-
-One local process handles provider authentication, model-based routing,
-protocol translation, streaming responses, and diagnostics. The built-in
-monitor shows sessions, active and recent requests, errors, token usage, and
-throughput.
-
-## Quick start with Codex
-
-Install on macOS or Linux:
-
-```sh
-brew install raine/claude-code-proxy/claude-code-proxy
+```text
+Claude Code -> 127.0.0.1:1234 -> selected account -> Codex Responses
 ```
 
-Or use the release installer:
+One account is enough to get started. Add others when needed. Accounts never rotate automatically when quota runs out.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/raine/claude-code-proxy/main/scripts/install.sh | bash
+Version 0.6.1 fixes stale rounded borders after maximizing/resizing and clipped background repainting around transparent labels/buttons. The dark interface uses a responsive grid, compact accounts section, neutral colors, and readable disabled actions. **Getting started** uses file-only configuration: Claude Code `settings.json`, Codex `config.toml`, and raw HTTP requests. No shell setup or credential helper is needed. See [SELF_TEST.md](SELF_TEST.md) for manual Windows UI/live-account checks. Native UI testing is intentionally left to the user.
+
+## Windows desktop
+
+Open `dist/OpenProxy-0.6.1/OpenProxy.exe`, or extract `dist/OpenProxy-0.6.1-windows-x64.zip` and open the executable. Keep the entire `resources` folder next to it. The portable app includes Node and the upstream engine; no separate Node installation is needed. Requires Windows 10/11 x64 with .NET Framework 4.8.
+
+1. Open **OpenProxy.exe**. A small startup window shows the current step and elapsed time before the main window opens. The proxy starts **stopped**.
+2. Choose **+ Add account → Link current Codex login**, or **Sign in to another ChatGPT account**.
+3. Click **Start proxy**. The default endpoint is `http://127.0.0.1:1234`.
+4. Click **Getting started**, choose your client, and follow the four steps. Click **Copy config**, merge it into the displayed settings file, save, and restart your client yourself.
+5. Click **Use account** to switch. Running requests keep their original account; new requests use your selection.
+
+Each account has **Enable/Disable** and **Refresh** actions. Disabling the active account clears the selection and blocks new inference requests until another enabled account is chosen; it never rotates automatically. Flags persist across restarts, and existing accounts default to enabled. Disabled accounts retain their credentials and cached information but cannot be selected or refreshed.
+
+**Refresh** performs a read-only plan/quota lookup using that account's access token. Plan, local authentication status, quota windows, and verification time are shown independently. Token-derived plan hints are unverified; old/failed checks are marked stale. Billing renewal/cancellation dates remain **Unknown** because they are not established by the usage endpoint. The lookup does not run a model, rotate refresh tokens, or consume a quota reset. The usage endpoint follows the [official Codex backend client's implementation](https://github.com/openai/codex/blob/main/codex-rs/backend-client/src/client/rate_limit_resets.rs) and can change or be unavailable for some accounts.
+
+Closing the window stops the proxy the desktop app started and cleans up its backend and engine processes. There is no tray mode or Windows auto-start. A proxy started separately from CLI remains owned by that CLI session.
+
+Desktop and CLI share account data outside the portable folder. Stop the proxy before adding or re-authenticating an independent login or changing its listening port. Desktop settings contain only the local port. OpenProxy does not launch coding clients or manage their model/project selection.
+
+Startup loads local modules, settings, account summaries, and the interface. It does not start an inference engine, refresh subscriptions, or make model calls. Progress tracks completed stages rather than an estimated percentage. Failures offer Retry, and closing during startup waits for backend cleanup. Windows/.NET initialization occurs before the first application window can be painted. The initial Recent activity message reports elapsed time measured from the loading window's initialization through main-window construction.
+
+### Client configuration guides
+
+**Getting started** is available even while the proxy is stopped or no accounts have been added. It shows a key placeholder in previews. Clicking **Copy config** or **Copy request** explicitly exports a complete snippet containing only the local proxy key, never upstream account access/refresh tokens. Keep copied configurations private. No client file is edited automatically. Reopen the guide after changing the port.
+
+- **Claude Code:** open `%USERPROFILE%\.claude\settings.json` (or the file under `CLAUDE_CONFIG_DIR`), back it up, and merge the copied `env` object. Save and restart the CLI; check `/status`, then choose a discovered GPT model with `/model`. Remove conflicting cloud provider flags and older OpenProxy helper settings. This uses the proxy root URL, without `/v1`.
+- **ChatGPT / Codex:** back up user-level `config.toml`, put `model_provider` before any table, and replace the old OpenProxy provider/auth sections with the copied provider. Its `/v1` base URL and direct local bearer key require no helper commands. Restart the client and create a new local Codex chat. Native sign-in/avatar stays unchanged; ordinary ChatGPT desktop/web chat routing remains unverified.
+- **API calls:** copy a raw HTTP request for a local HTTP client. Use the same Authorization header with `GET /v1/models` to choose a model ID. Browser-origin calls and Chat Completions-only clients are unsupported.
+
+### Choose models inside Claude Code
+
+OpenProxy does not choose a coding or background model. Open Claude Code and use `/model` to choose from the proxy's discovered GPT catalog, or type a model ID directly, such as `/model gpt-6-sol`. Claude Code manages your choice and saved defaults. Previously saved OpenProxy model and project-folder fields are ignored; account settings are retained.
+
+The guide's settings enable gateway model discovery and preserve user-owned model preferences. Use a recent Claude Code version (v2.1.257+ for discovery while nonessential traffic is disabled). Model discovery uses a compatibility routing ID, while the picker shows the actual GPT name. The proxy decodes that ID back to the same GPT model on requests. Catalog entries describe engine support, not guaranteed account entitlement.
+
+The desktop no longer contains a Claude Code executable picker. Legacy launcher preferences are retained in storage but not used by the desktop. The optional CLI `claude` command remains available for terminal users. See [Claude Code gateway model discovery](https://code.claude.com/docs/en/llm-gateway-protocol#model-discovery).
+
+## CLI
+
+Requires Node.js 22+; `openproxy.ps1` can also find the Node runtime bundled with Codex on this machine. No Rust installation or npm dependencies are needed.
+
+```powershell
+.\openproxy.ps1 setup
+.\openproxy.ps1 account link-codex personal
+.\openproxy.ps1 serve --port 1234
 ```
 
-Windows and other prebuilt artifacts are available from
-[GitHub Releases](https://github.com/raine/claude-code-proxy/releases).
+In another terminal:
 
-Sign in with a **ChatGPT Plus or Pro account**, not an OpenAI API account:
-
-```sh
-claude-code-proxy codex auth login
+```powershell
+.\openproxy.ps1 claude
 ```
 
-Start the proxy in one terminal:
+Add an independent account while the proxy is stopped, then switch after restarting it:
 
-```sh
-claude-code-proxy serve
+```powershell
+.\openproxy.ps1 account add secondary
+# Optional device-code login:
+# .\openproxy.ps1 account add secondary --device
+
+.\openproxy.ps1 account list
+.\openproxy.ps1 account use secondary
+.\openproxy.ps1 status
+.\openproxy.ps1 account use personal
+.\openproxy.ps1 account disable personal
+.\openproxy.ps1 account enable secondary
+.\openproxy.ps1 account refresh secondary
+.\openproxy.ps1 account info secondary
 ```
 
-For a background service, use `claude-code-proxy serve --no-monitor` and attach
-from another terminal with `claude-code-proxy monitor`. Closing an attached
-dashboard leaves the proxy running.
+If login is interrupted, use `account login NAME`. To inspect the catalog and open Claude Code:
 
-Start Claude Code in another:
-
-```sh
-ANTHROPIC_BASE_URL=http://127.0.0.1:18765 \
-ANTHROPIC_AUTH_TOKEN=unused \
-ANTHROPIC_MODEL=gpt-6-sol[1m] \
-ANTHROPIC_SMALL_FAST_MODEL=gpt-6-luna[1m] \
-CLAUDE_CODE_AUTO_COMPACT_WINDOW=272000 \
-CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
-CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1 \
-  claude
+```powershell
+.\openproxy.ps1 models
+.\openproxy.ps1 claude
 ```
 
-See [Getting started](https://claude-code-proxy.raine.dev/getting-started/)
-for the complete first session.
+Choose the model with `/model` in Claude Code. OpenProxy no longer accepts model overrides in its launcher.
 
-Optional Codex image generation and editing can reuse the same ChatGPT login:
+You can also use `node openproxy/cli.mjs ...`. Run `--help` for all commands.
 
-```sh
-CCP_CODEX_IMAGES_API=1 claude-code-proxy serve
-curl http://127.0.0.1:18765/v1/images/generations \
-  -H 'Content-Type: application/json' \
-  -d '{"prompt":"A paper-cut fox","model":"gpt-image-2"}'
+## Account credentials
+
+| Command | Credential ownership |
+| --- | --- |
+| `account add NAME` | The upstream engine signs in and refreshes tokens in an independent OpenProxy profile. Best for keeping multiple accounts. |
+| `account link-codex NAME` | Reads the native Codex credentials before each request. Projects only the access token; never copies the refresh token or changes the native auth file. |
+
+Codex links use `CODEX_HOME/auth.json`, or `~/.codex/auth.json` by default. To link a separate profile:
+
+```powershell
+.\openproxy.ps1 account link-codex work --source 'C:\MyCodexProfile\auth.json'
 ```
 
-The opt-in Images API returns base64 image data and consumes the signed-in account's image quota. Image prompts and payloads are excluded from traffic captures. See the [HTTP API](https://claude-code-proxy.raine.dev/reference/http-api/) for generation and edit schemas.
+Only file-backed ChatGPT login is supported for links. OS-keyring-only credentials and API keys are not supported by `link-codex`. A changed identity in the source file is rejected rather than silently switching the linked account. Near-expiry sessions need refreshing through Codex or an independent login. Switching accounts shares the portable conversation history with the newly selected account/workspace.
 
-## Providers
+## Storage and behavior
 
-| Provider     | Account                        | Model selection                                 |
-| ------------ | ------------------------------ | ----------------------------------------------- |
-| Codex        | ChatGPT Plus or Pro            | Registered `gpt-*` models, `-fast`/`-ultrafast` |
-| Kimi         | kimi.com with Kimi Code access | `kimi-for-coding` and aliases                   |
-| Grok         | grok.com                       | Registered Grok models                          |
-| OpenCode Go  | OpenCode Go subscription       | Non-conflicting IDs and `opencode-go/<model-id>` |
-| Cursor Agent | Cursor account                 | Cursor aliases and `cursor:<model-id>` prefixes |
+- Default data directory: `%LOCALAPPDATA%\OpenProxy` on Windows, `~/.local/share/openproxy` elsewhere. Override with `OPENPROXY_HOME` or `--home PATH`; use the same directory across terminals.
+- New Windows state directories restrict ACLs to the current user and SYSTEM. Unix directories use `0700`, files `0600`. Credentials remain sensitive local data.
+- The public listener binds to loopback, requires a local token, and rejects browser origins or unrecognized hostnames. Client configuration is explained in Getting started.
+- Internal per-account engine ports also bind to loopback but inherit the upstream engine's unauthenticated listener. Other applications on this computer must be trusted.
+- No additional telemetry or traffic capture is enabled. Upstream operational logs and error-response captures can still contain sensitive response content.
+- Accepted routes: Messages, count_tokens, models, and HTTP Responses. JSON request bodies are limited to 64 MiB; responses stream without buffering the complete response.
+- Private continuation, WebSockets, and server compaction are disabled. Encrypted reasoning signatures are removed from replayed history; text, tool calls, and tool results remain portable. This can reduce the benefit of native reasoning replay.
+- OpenProxy never replays a broken stream on another account. The upstream engine retains its own internal retry behavior.
+- **Getting started → ChatGPT / Codex → Copy config** exports provider configuration containing the local proxy key as `experimental_bearer_token`. This direct-token setting serves this local personal integration; no upstream credential is exported. Normal status/guide previews never expose the key. The configuration does not change native Codex login or edit client files. Full history and local compaction are required; stored continuation and WebSockets are unsupported.
+- The launcher uses a 200,000-token auto-compaction threshold. Models must support the requested context size; the `[1m]` client hint does not grant additional upstream context.
 
-Run `claude-code-proxy models` for the current catalog or
-`claude-code-proxy models --full` for every dynamic Cursor alias.
+## Development
 
-> [!WARNING]
-> The proxy accepts local requests without client authentication. It binds to
-> `127.0.0.1` by default. Protect any non-loopback listener with a firewall or
-> authenticating reverse proxy. Provider subscriptions, model access, terms,
-> and account enforcement remain under each provider's control. Unofficial
-> clients may carry account risk.
+```powershell
+node openproxy/cli.mjs setup
+node --test openproxy/test/*.test.mjs
+node desktop/build.mjs
+# Build a separate copy while an older executable is open:
+node desktop/build.mjs --versioned
+```
 
-## Documentation
+Tests use fake credentials and a local upstream, including tool-call translation through the real pinned engine. Engine tests are skipped if it is not installed. They do not consume ChatGPT quota.
 
-- [What is claude-code-proxy?](https://claude-code-proxy.raine.dev/)
-- [Choosing a provider](https://claude-code-proxy.raine.dev/providers/choosing-a-provider/)
-- [Configure Claude Code](https://claude-code-proxy.raine.dev/using/configure-claude-code/)
-- [Models and routing](https://claude-code-proxy.raine.dev/using/models-and-routing/)
-- [Monitor TUI](https://claude-code-proxy.raine.dev/using/monitor-tui/)
-- [Troubleshooting](https://claude-code-proxy.raine.dev/using/troubleshooting/)
-- [Command reference](https://claude-code-proxy.raine.dev/reference/command-reference/)
-- [Configuration](https://claude-code-proxy.raine.dev/reference/configuration/)
-- [HTTP API](https://claude-code-proxy.raine.dev/reference/http-api/)
-- [Compatibility and limitations](https://claude-code-proxy.raine.dev/reference/compatibility-and-limitations/)
-- [For coding agents](https://claude-code-proxy.raine.dev/using/for-coding-agents/)
+The desktop build uses the Windows C# compiler for a native WinForms interface and bundles the active Node runtime and engine `v0.1.46`, with licenses and an archive checksum. The private desktop backend communicates through stdin/stdout, without another management HTTP listener.
 
-## Related projects
+## Upstream
 
-- [aven](https://github.com/raine/aven): local-first task management for power
-  users and agents
-- [claude-history](https://github.com/raine/claude-history): search Claude Code
-  conversation history from the terminal
-- [git-surgeon](https://github.com/raine/git-surgeon): non-interactive
-  hunk-level git staging for coding agents
-- [workmux](https://github.com/raine/workmux): parallel coding tasks in git
-  worktrees and tmux
-- [consult-llm](https://github.com/raine/consult-llm): consult other AI models
-  from an agent workflow
+The original Rust source and MIT license from [raine/claude-code-proxy](https://github.com/raine/claude-code-proxy) are retained. See [README.upstream.md](README.upstream.md). OpenProxy adds the Node account selector, CLI, and Windows desktop interface around the pinned upstream release.
 
-## License
-
-[MIT](LICENSE)
+This remains an experimental subscription-backed integration. Anthropic [does not support routing Claude Code to non-Claude models](https://code.claude.com/docs/en/llm-gateway). Running locally does not guarantee future provider policy, quota, or account access.

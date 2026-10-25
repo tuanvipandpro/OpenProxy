@@ -1,0 +1,29 @@
+name: OpenProxy Windows
+
+on:
+  push:
+    paths: ['openproxy/**', 'desktop/**', 'openproxy.ps1', 'package.json', '.github/workflows/openproxy.yml']
+  pull_request:
+    paths: ['openproxy/**', 'desktop/**', 'openproxy.ps1', 'package.json', '.github/workflows/openproxy.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned upstream engine
+        run: node openproxy/cli.mjs setup
+      - name: Run local and real-engine integration tests
+        run: node --test openproxy/test/*.test.mjs
+      - name: Verify PowerShell launcher
+        run: ./openproxy.ps1 --help
+      - name: Build native portable desktop
+        run: node desktop/build.mjs
